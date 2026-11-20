@@ -1,0 +1,8 @@
+{
+  "name": "Bếp Của Tòn - Quản Lý Kho Bếp & Thực Đơn Gia Đình",
+  "description": "Ứng dụng cá nhân quản lý kho gia vị, nguyên liệu, gợi ý món ăn nhạt ít dầu mỡ và tự động kiểm kê kho sau khi nấu.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
