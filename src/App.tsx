@@ -43,7 +43,10 @@ import { RecipeDetailModal } from './components/RecipeDetailModal';
 import { CookConfirmModal } from './components/CookConfirmModal';
 import { CustomRecipeModal } from './components/CustomRecipeModal';
 import { OfflineIndicator } from './components/OfflineIndicator';
-
+import {
+  fetchRemoteFamilyState,
+  pushRemoteFamilyState,
+} from './utils/supabaseSync';
 export default function App() {
   const [activeTab, setActiveTab] = useState<AppTab>('recipes');
   const [pantry, setPantry] = useState<PantryItem[]>(() => loadPantry());
@@ -100,7 +103,79 @@ export default function App() {
     const timer = window.setTimeout(() => setToast(null), 3500);
     return () => window.clearTimeout(timer);
   }, [toast]);
+const isApplyingRemoteRef = React.useRef(false);
+  const hasLoadedRemoteRef = React.useRef(false);
+  const lastSyncedTimestampRef = React.useRef<string | undefined>(undefined);
 
+  // Hàm áp dữ liệu từ Supabase vào máy
+  const applyRemoteData = (remote: Awaited<ReturnType<typeof fetchRemoteFamilyState>>) => {
+    if (!remote) return;
+    if (remote.clientUpdatedAt && remote.clientUpdatedAt === lastSyncedTimestampRef.current) {
+      return;
+    }
+    lastSyncedTimestampRef.current = remote.clientUpdatedAt;
+    isApplyingRemoteRef.current = true;
+    setPantry(remote.pantry ?? []);
+    setShoppingList(remote.shoppingList ?? []);
+    setHistory(remote.history ?? []);
+    setCustomRecipes(remote.customRecipes ?? []);
+    if (remote.prefs) setPrefs(remote.prefs);
+    if (remote.dietWeeks) setDietWeeks(remote.dietWeeks);
+    if (remote.wifeProfile) setWifeProfile(remote.wifeProfile);
+    window.setTimeout(() => {
+      isApplyingRemoteRef.current = false;
+    }, 150);
+  };
+
+  // 1. Tải dữ liệu chung khi mở app & tự kiểm tra cập nhật mới mỗi 5 giây (hoặc khi quay lại tab)
+  useEffect(() => {
+    let active = true;
+
+    const syncFromCloud = async () => {
+      const remote = await fetchRemoteFamilyState();
+      if (!active) return;
+      if (remote) {
+        applyRemoteData(remote);
+      }
+      hasLoadedRemoteRef.current = true;
+    };
+
+    syncFromCloud();
+
+    const intervalId = window.setInterval(syncFromCloud, 5000);
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        syncFromCloud();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+
+    return () => {
+      active = false;
+      window.clearInterval(intervalId);
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
+  }, []);
+
+  // 2. Tự động đẩy dữ liệu lên Supabase sau 0.6 giây kể từ khi có thao tác sửa đổi
+  useEffect(() => {
+    if (!hasLoadedRemoteRef.current || isApplyingRemoteRef.current) return;
+    const timer = window.setTimeout(() => {
+      const timestamp = new Date().toISOString();
+      lastSyncedTimestampRef.current = timestamp;
+      pushRemoteFamilyState({
+        pantry,
+        shoppingList,
+        history,
+        customRecipes,
+        prefs,
+        dietWeeks,
+        wifeProfile,
+        clientUpdatedAt: timestamp,
+      });
+    }, 600);
+    return () => window.clearTimeout(timer);
+  }, [pantry, shoppingList, history, customRecipes, prefs, dietWeeks, wifeProfile]);
   const allRecipes = useMemo(
     () => [...customRecipes, ...BUILTIN_RECIPES],
     [customRecipes]
