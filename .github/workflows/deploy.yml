@@ -1,6 +1,5 @@
 name: Deploy Web App to GitHub Pages
 
-
 on:
   push:
     branches: ["main"]
@@ -41,3 +40,4 @@ jobs:
     steps:
       - id: deployment
         uses: actions/deploy-pages@v4
+
