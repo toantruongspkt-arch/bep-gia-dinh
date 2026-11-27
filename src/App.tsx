@@ -1,3 +1,5 @@
+import { CustomCulinaryDesigner } from "./CustomCulinaryDesigner";
+import type { CustomRecipeResult } from "./requestCustomRecipe";
 import React, { useEffect, useMemo, useState } from 'react';
 import { X } from 'lucide-react';
 import { INITIAL_PANTRY_ITEMS } from './data/initialPantry';
@@ -54,6 +56,26 @@ export default function App() {
     loadShoppingList()
   );
   const [history, setHistory] = useState<CookHistoryEntry[]>(() => loadHistory());
+  const handleSaveDesignedRecipe = (recipe: CustomRecipeResult) => {
+  const entry = {
+    id: recipe.id,
+    recipeId: recipe.id,
+    recipeTitle: recipe.dishName,
+    dishName: recipe.dishName,
+    cookedAt: recipe.createdAt,
+    createdAt: recipe.createdAt,
+    category: recipe.category,
+    cuisineStyle: recipe.cuisineStyle,
+    prepTime: recipe.prepTime,
+    tasteProfileLabel: recipe.tasteProfileLabel,
+    standardRecipe: recipe.standardRecipe,
+    savoryVersion: recipe.savoryVersion,
+    veganVersion: recipe.veganVersion,
+    notes: `Tự thiết kế (${recipe.cuisineStyle}) · ${recipe.tasteProfileLabel}`,
+  } as unknown as CookHistoryEntry;
+
+  setHistory((prev) => [entry, ...prev]);
+};
   const [customRecipes, setCustomRecipes] = useState<Recipe[]>(() =>
     loadCustomRecipes()
   );
@@ -512,16 +534,27 @@ const isApplyingRemoteRef = React.useRef(false);
 
       <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
         <div key={activeTab} className="smooth-view-enter">
-        {activeTab === 'recipes' && (
-          <RecipeDiscoveryView
-            recipes={allRecipes}
-            pantry={pantry}
-            prefs={prefs}
-            onUpdatePrefs={updatePrefs}
-            onSelectRecipe={handleSelectRecipe}
-            onQuickCook={handleQuickCook}
-            onOpenCustomRecipe={() => setIsCustomModalOpen(true)}
-          />
+       {activeTab === 'recipes' && (
+          <div className="space-y-6">
+            <RecipeDiscoveryView
+              recipes={allRecipes}
+              pantry={pantry}
+              prefs={prefs}
+              onUpdatePrefs={updatePrefs}
+              onSelectRecipe={handleSelectRecipe}
+              onQuickCook={handleQuickCook}
+              onOpenCustomRecipe={() => setIsCustomModalOpen(true)}
+            />
+            <CustomCulinaryDesigner
+              pantryItems={pantry
+                .map((item) => {
+                  const anyItem = item as unknown as Record<string, unknown>;
+                  return String(anyItem?.name ?? anyItem?.title ?? "");
+                })
+                .filter(Boolean)}
+              onSaveToHistory={handleSaveDesignedRecipe}
+            />
+          </div>
         )}
 
         {activeTab === 'pantry' && (
