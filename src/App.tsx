@@ -50,34 +50,76 @@ import {
   fetchRemoteFamilyState,
   pushRemoteFamilyState,
 } from './utils/supabaseSync';
+function normalizeHistoryItem(raw: unknown): CookHistoryEntry {
+  const item = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
+  const asStringArray = (v: unknown): string[] =>
+    Array.isArray(v) ? v.map((x) => String(x ?? "")) : [];
+  const asSubArray = (v: unknown) =>
+    Array.isArray(v) ? v : [];
+
+  const std = (item.standardRecipe && typeof item.standardRecipe === "object"
+    ? item.standardRecipe
+    : {}) as Record<string, unknown>;
+  const sav = (item.savoryVersion && typeof item.savoryVersion === "object"
+    ? item.savoryVersion
+    : {}) as Record<string, unknown>;
+  const veg = (item.veganVersion && typeof item.veganVersion === "object"
+    ? item.veganVersion
+    : {}) as Record<string, unknown>;
+
+  const titleText = String(item.dishName ?? item.name ?? item.title ?? "Món đã lưu");
+  const timeText = String(item.cookedAt ?? item.createdAt ?? new Date().toISOString());
+
+  return {
+    ...item,
+    id: String(item.id ?? `hist-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`),
+    name: titleText,
+    title: titleText,
+    dishName: titleText,
+    cookedAt: timeText,
+    createdAt: timeText,
+    ingredients: asStringArray(item.ingredients ?? std.ingredients),
+    steps: asStringArray(item.steps ?? std.steps),
+    tips: asStringArray(item.tips ?? std.tips),
+    standardRecipe: {
+      ingredients: asStringArray(std.ingredients),
+      steps: asStringArray(std.steps),
+      tips: asStringArray(std.tips),
+    },
+    savoryVersion: {
+      title: String(sav.title ?? `${titleText} (Mặn)`),
+      summary: String(sav.summary ?? ""),
+      ingredients: asStringArray(sav.ingredients),
+      steps: asStringArray(sav.steps),
+      substitutions: asSubArray(sav.substitutions),
+    },
+    veganVersion: {
+      title: String(veg.title ?? `${titleText} (Chay)`),
+      summary: String(veg.summary ?? ""),
+      ingredients: asStringArray(veg.ingredients),
+      steps: asStringArray(veg.steps),
+      substitutions: asSubArray(veg.substitutions),
+    },
+  } as unknown as CookHistoryEntry;
+}
 export default function App() {
   const [activeTab, setActiveTab] = useState<AppTab>('recipes');
   const [pantry, setPantry] = useState<PantryItem[]>(() => loadPantry());
   const [shoppingList, setShoppingList] = useState<ShoppingItem[]>(() =>
     loadShoppingList()
   );
-  const [history, setHistory] = useState<CookHistoryEntry[]>(() => loadHistory());
+  const [history, setHistory] = useState<CookHistoryEntry[]>(() => {
+  const loaded = loadHistory();
+  return Array.isArray(loaded) ? loaded.map(normalizeHistoryItem) : [];
+});
   const [maleCount, setMaleCount] = useState(1);
 const [femaleCount, setFemaleCount] = useState(1);
   const handleSaveDesignedRecipe = (recipe: CustomRecipeResult) => {
-  const entry = {
-    id: recipe.id,
-    recipeId: recipe.id,
-    recipeTitle: recipe.dishName,
-    dishName: recipe.dishName,
-    cookedAt: recipe.createdAt,
-    createdAt: recipe.createdAt,
-    category: recipe.category,
-    cuisineStyle: recipe.cuisineStyle,
-    prepTime: recipe.prepTime,
-    tasteProfileLabel: recipe.tasteProfileLabel,
-    standardRecipe: recipe.standardRecipe,
-    savoryVersion: recipe.savoryVersion,
-    veganVersion: recipe.veganVersion,
-    notes: `Tự thiết kế (${recipe.cuisineStyle}) · ${recipe.tasteProfileLabel}`,
-  } as unknown as CookHistoryEntry;
-
-  setHistory((prev) => [entry, ...prev]);
+  const entry = normalizeHistoryItem({
+    ...recipe,
+    cookedAt: new Date().toISOString(),
+  });
+  setHistory((prev) => [entry, ...prev.map(normalizeHistoryItem)]);
 };
   const [customRecipes, setCustomRecipes] = useState<Recipe[]>(() =>
     loadCustomRecipes()
