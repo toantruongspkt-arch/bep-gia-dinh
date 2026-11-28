@@ -115,11 +115,19 @@ export default function App() {
   const [maleCount, setMaleCount] = useState(1);
 const [femaleCount, setFemaleCount] = useState(1);
   const handleSaveDesignedRecipe = (recipe: CustomRecipeResult) => {
+  const safeIngredients = Array.isArray(recipe?.standardRecipe?.ingredients)
+    ? recipe.standardRecipe.ingredients
+    : [];
+  const safeSteps = Array.isArray(recipe?.standardRecipe?.steps)
+    ? recipe.standardRecipe.steps
+    : [];
   const entry = normalizeHistoryItem({
     ...recipe,
+    ingredients: safeIngredients,
+    steps: safeSteps,
     cookedAt: new Date().toISOString(),
   });
-  setHistory((prev) => [entry, ...prev.map(normalizeHistoryItem)]);
+  setHistory((prev) => [entry, ...(Array.isArray(prev) ? prev : []).map(normalizeHistoryItem)]);
 };
   const [customRecipes, setCustomRecipes] = useState<Recipe[]>(() =>
     loadCustomRecipes()
