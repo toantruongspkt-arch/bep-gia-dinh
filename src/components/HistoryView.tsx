@@ -156,7 +156,8 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
         brandName: 'BẾP CỦA TÒN',
       });
 
-      const fileName = `bep-cua-ton-${entry.cookedAt.slice(0, 10)}.png`;
+      const safeDateStr = String(entry.cookedAt || new Date().toISOString());
+const fileName = `bep-cua-ton-${safeDateStr.slice(0, 10)}.png`;
       const shareFile = new File([cardBlob], fileName, { type: 'image/png' });
 
       if (
@@ -425,28 +426,23 @@ export const HistoryView: React.FC<HistoryViewProps> = ({
                   )}
                 </div>
 
-                {entry.usedIngredients.length > 0 && (
-                  <div className="pt-3 border-t border-stone-100">
-                    <div className="text-xs font-semibold text-stone-600 mb-2">
-                      Nguyên liệu đã trừ kho:
-                    </div>
-                    <div className="flex flex-wrap gap-x-4 gap-y-1.5 text-xs text-stone-700">
-                      {entry.usedIngredients.map((u, i) => (
-                        <div key={`${u.name}-${i}`}>
-                          <span>{u.name}: </span>
-                          <span className="font-mono-num font-semibold text-stone-900">
-                            -{formatQty(u.amount)} {u.unit}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </article>
-            );
-          })}
+                {Array.isArray(entry.usedIngredients) && entry.usedIngredients.length > 0 && (
+  <div className="pt-3 border-t border-stone-100">
+    <div className="text-xs font-semibold text-stone-600 mb-2">
+      Nguyên liệu đã trừ kho:
+    </div>
+    <div className="flex flex-wrap gap-x-4 gap-y-1.5 text-xs text-stone-700">
+      {entry.usedIngredients.map((u, i) => (
+        <div key={`${u?.name ?? 'item'}-${i}`}>
+          <span>{u?.name ?? ''}: </span>
+          <span className="font-mono-num font-semibold text-stone-900">
+            -{formatQty(Number(u?.amount) || 0)} {u?.unit ?? ''}
+          </span>
         </div>
-      )}
+      ))}
+    </div>
+  </div>
+)}
 
       {/* Standalone New Check-in Modal */}
       {isNewCheckinOpen && (
