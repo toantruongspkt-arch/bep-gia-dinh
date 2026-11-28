@@ -77,7 +77,7 @@ function normalizeHistoryItem(raw: unknown): CookHistoryEntry {
     title: titleText,
     recipeName: titleText,
     checkinPhotos: asSubArray(item.checkinPhotos),
-    usedIngredients: asStringArray(item.usedIngredients ?? item.ingredients ?? std.ingredients),
+    usedIngredients: Array.isArray(item.usedIngredients) ? item.usedIngredients : [],
     missingIngredients: asStringArray(item.missingIngredients),
     tags: asStringArray(item.tags),
     dishName: titleText,
